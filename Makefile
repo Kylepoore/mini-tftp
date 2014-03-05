@@ -33,7 +33,7 @@ test-server:
 test-client-write:
 	./tftp -wv ${LOCALHOST} ${FILENAME}
 
-test-client-write:
+test-client-read:
 	./tftp -rv ${LOCALHOST} ${FILENAME}
 
 tftp-s:
