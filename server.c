@@ -1,16 +1,19 @@
 /*
-** Kyle Poore
-** March 3,2014
+** server.c
+**
+** Author: Kyle Poore
+** Created: March 3,2014
 **
 */
-#include "tftp.h"
+
 #include "server.h"
+#include "tftp.h"
 #include <signal.h>
 
 volatile int stop = 0;
 int busy = 0;
 
-void stopServer(){
+void stopServer() {
   if(busy && !stop){
     fprintf(stderr,"\nServer is busy, server will shutdown when done.\n");
     fprintf(stderr,"Press ^C again to force shutdown.\n");
@@ -21,11 +24,11 @@ void stopServer(){
   }
 }
 
-int getOpCode(char *buf){
+int getOpCode(char *buf) {
   return ((int)buf[0] << 8) + buf[1];
 }
 
-void startServer(char *port, int verbose){
+void startServer(char *port, int verbose) {
   printf("server mode\n");
   int sockfd;
   struct sockaddr_in my_addr;
@@ -36,7 +39,7 @@ void startServer(char *port, int verbose){
   int opcode = 0;
   signal(SIGINT,stopServer);
   
-  if((sockfd=socket(AF_INET, SOCK_DGRAM, 0)) == -1){
+  if((sockfd=socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
     perror("socket");
     exit(EXIT_FAILURE);
   }
@@ -46,7 +49,7 @@ void startServer(char *port, int verbose){
   my_addr.sin_addr.s_addr = INADDR_ANY;
   memset(&(my_addr.sin_zero), '\0', 8);
 
-  if(bind(sockfd, (struct sockaddr *) & my_addr, sizeof(struct sockaddr)) == -1){
+  if(bind(sockfd, (struct sockaddr *) & my_addr, sizeof(struct sockaddr)) == -1) {
     perror("bind");
     exit(EXIT_FAILURE);
   }
@@ -61,7 +64,8 @@ void startServer(char *port, int verbose){
     busy = 1;
     char serverMode = 0;
     //added to get source port number
-    vprintf("got packet from %s, port %d\n", inet_ntoa(their_addr.sin_addr), ntohs(their_addr.sin_port));
+    vprintf("got packet from %s, port %d\n", 
+      inet_ntoa(their_addr.sin_addr), ntohs(their_addr.sin_port));
     vprintf("packet is %d bytes long\n", numbytes);
     //buf[numbytes] = '\0';
     //vprintf("packet contains \"%s\"\n", buf);
@@ -91,13 +95,15 @@ void startServer(char *port, int verbose){
     {
       //return the packet to sender
       int bytes_sent;
-  	  if((bytes_sent = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) & their_addr, sizeof(struct sockaddr))) == -1){
-       	perror("send");
+  	  if((bytes_sent = sendto(sockfd, buf, strlen(buf), 0, 
+          (struct sockaddr *) & their_addr, sizeof(struct sockaddr))) == -1){
+        perror("send");
        	exit(EXIT_FAILURE);
       }
+
       vprintf("packet sent, %d bytes\n", bytes_sent);
     }
+
     busy = 0;
   }
-  
 }
