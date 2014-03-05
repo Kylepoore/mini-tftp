@@ -4,7 +4,8 @@
 
 CC = gcc
 LOCALHOST = localhost
-REMOTEHOST = ec2-50-19-171-60.compute-1.amazonaws.com
+REMOTEHOST = ec2-50-16-148-32.compute-1.amazonaws.com
+FILENAME = test.txt
 
 all: tftp
 
@@ -21,22 +22,28 @@ client.o: client.c client.h tftp.h
 	${CC} -c client.c
 
 test:
-	@echo For a local test, for run test-local-s in one window, then test-local-c in another.
-	@echo For a netbounce, run nb-s in the far computer, then nb-c in the near computer.
+	@echo Test directives have not been developed yet.
+	@echo to test the server, run: make test-server
+	@echo to test the client in write mode, run: make test-client-write
+	@echo to test the client in read mode, run: make test-client-read
 
-test-local-c:
-	./tftp-server
+test-server:
+	./tftp -lv
 
-test-local-s:
-	./tftp-client ${LOCALHOST} hello_world
+test-client-write:
+	./tftp -wv ${LOCALHOST} ${FILENAME}
 
+test-client-write:
+	./tftp -rv ${LOCALHOST} ${FILENAME}
 
-nb-s:
-	@echo Ready to bounce!
-	./tftp-server
+tftp-s:
+	./tftp -l
 
-nb-c:
-	.tftp-client ${REMOTEHOST} "The amazing net bounce!"
+tftp-c-r:
+	.tftp -r ${REMOTEHOST} ${FILENAME}
+
+tftp-c-w:
+	.tftp -w ${REMOTEHOST} ${FILENAME}
 
 submit:
 	svn commit -m "submitted for grade"
