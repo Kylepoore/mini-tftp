@@ -9,14 +9,16 @@
 #include "server.h"
 #include "client.h"
 
+int verbose;
+
 int main(int argc,char **argv) {
   char *port = "3335";
   char c;
-  int verbose = 0;
   char clientMode = 0;
   int isServer = 0;
   char *filename;
   char *host;
+  verbose = 0;
 
   while((c = getopt(argc,argv,"lvrwp:")) != -1){
     switch(c){
@@ -61,9 +63,9 @@ int main(int argc,char **argv) {
   }
 
   if(isServer) {
-    startServer(port, verbose);
+    startServer(port);
   } else {
-    startClient(port, filename, host, clientMode, verbose);
+    startClient(port, filename, host, clientMode);
   }
 
 	return EXIT_SUCCESS;

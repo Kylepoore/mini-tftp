@@ -1,3 +1,6 @@
+#ifndef PACKET_H
+#define PACKET_H
+
 #define MOST_SIG(a) ((short)(a) >> 8)
 #define LEAST_SIG(a) (((short)(a) << 8) >> 8)
 
@@ -13,4 +16,8 @@ int pack_ack(char *buf, short block);
 
 int pack_error(char *buf, error_code ec, char *errMsg);
 
-int send_packet(int sockfd, send_req request, int verbose);
+int send_packet(int sockfd, send_req request);
+
+void free_send_req(send_req request);
+
+#endif

@@ -26,7 +26,7 @@ void stopServer() {
   }
 }
 
-void startServer(char *port, int verbose) {
+void startServer(char *port) {
   printf("server mode\n");
   int sockfd;
   struct sockaddr_in my_addr;
@@ -35,6 +35,7 @@ void startServer(char *port, int verbose) {
   char buf[MAXBUFLEN];
   int portnum = atoi(port);
   int opcode = 0;
+  tftp_state serverState = setup_fsm_server();
   signal(SIGINT,stopServer);
   
   if((sockfd=socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
@@ -60,7 +61,10 @@ void startServer(char *port, int verbose) {
     }
     //server is busy!! please don't interrupt here!!
     busy++;
-    char serverMode = 0;
+    send_req request = update_fsm_server(&serverState, their_addr, buf);
+    send_packet(sockfd, request);
+    free_send_req(request);
+/*    char serverMode = 0;
     //added to get source port number
     vprintf("got packet from %s, port %d\n", 
       inet_ntoa(their_addr.sin_addr), ntohs(their_addr.sin_port));
@@ -89,7 +93,7 @@ void startServer(char *port, int verbose) {
       default :
         vprintf("Malformed packet received\n");
     }
-    
+
     {
       //return the packet to sender
       int bytes_sent;
@@ -101,7 +105,7 @@ void startServer(char *port, int verbose) {
 
       vprintf("packet sent, %d bytes\n", bytes_sent);
     }
-
+*/
     busy--;
   }
 }

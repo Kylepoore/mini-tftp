@@ -52,10 +52,12 @@ typedef struct {
 } tftp_state;
 
 typedef struct {
-  struct addrinfo address;
+  struct sockaddr_in address;
   char *buf;
   int length;
   op_code op;
 } send_req;
+
+extern int verbose;
 
 #endif

@@ -18,7 +18,7 @@
 // #include <netdb.h>
 
 void startClient(char *port, char *filename, char *host, 
-                 char clientMode, int verbose){
+                 char clientMode){
   printf("client started\n");
 
   struct addrinfo hints, *servinfo;

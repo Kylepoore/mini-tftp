@@ -63,7 +63,7 @@ int pack_error(char *buf, error_code ec, char *errMsg) {
   return length;
 }
 
-int send_packet(int sockfd, send_req request, int verbose) {
+int send_packet(int sockfd, send_req request) {
   int bytes_sent;
   if((bytes_sent = sendto(sockfd, request.buf, request.length, 0, 
       (struct sockaddr *) & request.address, sizeof(struct sockaddr))) == -1) {
@@ -72,4 +72,13 @@ int send_packet(int sockfd, send_req request, int verbose) {
   }
 
   vprintf("packet sent, %d bytes\n", bytes_sent);
-} 
+}
+
+void free_send_req(send_req request){
+  vprintf("freeing %d bytes\n",request.length);
+  if(request.buf == NULL){
+    return;
+  }
+  free(request.buf);
+  request.buf = NULL;
+}
