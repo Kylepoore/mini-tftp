@@ -8,6 +8,7 @@
 
 #include "server.h"
 #include "tftp.h"
+#include "fsm.h"
 #include <signal.h>
 
 volatile int stop = 0;

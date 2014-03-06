@@ -9,8 +9,8 @@ FILENAME = test.txt
 
 all: tftp
 
-tftp: tftp.o server.o client.o
-	${CC} tftp.o server.o client.o -o tftp
+tftp: tftp.o server.o client.o fsm_server.o fsm_client_r.o fsm_client_w.o
+	${CC} tftp.o server.o client.o fsm_server.o fsm_client_r.o fsm_client_w.o -o tftp
 
 tftp.o: tftp.h tftp.c server.h client.h
 	${CC} -c tftp.c
@@ -20,6 +20,15 @@ server.o: server.c server.h tftp.h
 
 client.o: client.c client.h tftp.h
 	${CC} -c client.c
+
+fsm_server.o: fsm.h
+	${CC} -c fsm_server.c
+
+fsm_client_r.o: fsm.h
+	${CC} -c fsm_client_r.c
+
+fsm_client_w.o: fsm.h
+	${CC} -c fsm_client_w.c
 
 test:
 	@echo Test directives have not been developed yet.

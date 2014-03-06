@@ -38,4 +38,23 @@ typedef enum {
   ERROR = 5
 } op_code;
 
+typedef enum {
+  WAITING,
+  SENDING,
+  RECEIVING,
+  SHUTDOWN
+} protocol_state;
+
+typedef struct {
+  protocol_state state;
+  int block;
+  FILE *fp;
+} tftp_state;
+
+typedef struct {
+  struct addrinfo address;
+  char *buf;
+  op_code op;
+} send_req;
+
 #endif
