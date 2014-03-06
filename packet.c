@@ -75,7 +75,7 @@ int send_packet(int sockfd, send_req request) {
 }
 
 void free_send_req(send_req request){
-  vprintf("freeing %d bytes\n",request.length);
+  vprintf("freeing %d bytes\n",MAXBUFLEN);
   if(request.buf == NULL){
     return;
   }
