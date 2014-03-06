@@ -11,7 +11,7 @@
 #include "fsm.h"
 #include <signal.h>
 
-volatile int stop = 0;
+volatile sig_atomic_t stop = 0;
 int busy = 0;
 
 void stopServer() {
