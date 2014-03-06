@@ -5,7 +5,7 @@ int getOpCode(char *buf) {
   return ((int)buf[0] << 8) + buf[1];
 }
 
-int pack_rrq(char *buf, char *fileName, char *mode) {
+int pack_rrq(char *buf, char *fileName, const char *mode) {
   int length = 2 + strlen(fileName) + strlen(mode) + 2;
   if(length > MAXBUFLEN){
     return -1;
@@ -17,7 +17,7 @@ int pack_rrq(char *buf, char *fileName, char *mode) {
   return length;
 }
 
-int pack_wrq(char *buf, char *fileName, char *mode) {
+int pack_wrq(char *buf, char *fileName, const char *mode) {
   int length = 2 + strlen(fileName) + strlen(mode) + 2;
   if(length > MAXBUFLEN){
     return -1;
