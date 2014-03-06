@@ -9,10 +9,11 @@
 #include "server.h"
 #include "tftp.h"
 #include "fsm.h"
+#include "packet.h"
 #include <signal.h>
 
 volatile sig_atomic_t stop = 0;
-int busy = 0;
+volatile sig_atomic_t busy = 0;
 
 void stopServer() {
   if(busy && !stop){
@@ -23,10 +24,6 @@ void stopServer() {
     fprintf(stderr,"\nGoodbye.\n");
     exit(EXIT_SUCCESS);
   }
-}
-
-int getOpCode(char *buf) {
-  return ((int)buf[0] << 8) + buf[1];
 }
 
 void startServer(char *port, int verbose) {
@@ -62,7 +59,7 @@ void startServer(char *port, int verbose) {
   	  exit(EXIT_FAILURE);
     }
     //server is busy!! please don't interrupt here!!
-    busy = 1;
+    busy++;
     char serverMode = 0;
     //added to get source port number
     vprintf("got packet from %s, port %d\n", 
@@ -105,6 +102,6 @@ void startServer(char *port, int verbose) {
       vprintf("packet sent, %d bytes\n", bytes_sent);
     }
 
-    busy = 0;
+    busy--;
   }
 }

@@ -54,6 +54,7 @@ typedef struct {
 typedef struct {
   struct addrinfo address;
   char *buf;
+  int length;
   op_code op;
 } send_req;
 

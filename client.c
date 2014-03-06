@@ -9,6 +9,7 @@
 #include "client.h"
 #include "tftp.h"
 #include "fsm.h"
+#include "packet.h"
 // #include <stdio.h>
 // #include <stdlib.h>
 // #include <string.h>
