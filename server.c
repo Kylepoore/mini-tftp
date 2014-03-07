@@ -32,7 +32,7 @@ void startServer(char *port) {
   struct sockaddr_in my_addr;
   struct sockaddr_in their_addr;
   unsigned int addr_len, numbytes;
-  char buf[MAXBUFLEN];
+  char buffer[MAXBUFLEN];
   int portnum = atoi(port);
   int opcode = 0;
   tftp_state serverState = setup_fsm_server();
@@ -52,19 +52,20 @@ void startServer(char *port) {
     perror("bind");
     exit(EXIT_FAILURE);
   }
+
+  //send_req request;
 	
   while(!stop) { 
     addr_len = sizeof(struct sockaddr);
-   	if((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0, (struct sockaddr *) & their_addr, &addr_len)) == -1){
+   	if((numbytes = recvfrom(sockfd, &buffer, MAXBUFLEN, 0, (struct sockaddr *) & their_addr, &addr_len)) == -1){
 	    perror("recvfrom");
   	  exit(EXIT_FAILURE);
     }
     //server is busy!! please don't interrupt here!!
-
+    send_req request;
     busy++;
-    send_req request = update_fsm_server(&serverState, their_addr, buf, numbytes);
+    update_fsm_server(&request, &serverState, their_addr, buffer, numbytes);
     send_packet(sockfd, request);
-    free_send_req(request);
     busy--;
 
   }

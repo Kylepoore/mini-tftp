@@ -22,6 +22,4 @@ int pack_error(char *buf, error_code ec, char *errMsg);
 
 int send_packet(int sockfd, send_req request);
 
-void free_send_req(send_req request);
-
 #endif

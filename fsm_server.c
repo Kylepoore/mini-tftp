@@ -15,13 +15,18 @@ tftp_state setup_fsm_server(){
   return state;
 }
 
-send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, char *buf, unsigned int bytes){
-  send_req request = {.op = 0};
+void handle_error(char *buf){
+  if(verbose){
+    fputs(buf+4,stderr);
+  }
+}
+
+int update_fsm_server(send_req *request, tftp_state *serverState, struct sockaddr_in address, char *buf, unsigned int bytes){
+  request->op = 0;
   char databuf[512];
   int opcode = getOpCode(buf);
   int block = -1;
   int length = 0;
-  char *sendBuf = calloc(MAXBUFLEN,sizeof(char));
   int datalen = 0;
   vprintf("got packet from %s, port %d\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
   
@@ -30,58 +35,81 @@ send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, 
       switch(opcode){
         case RRQ :
           vprintf("entering SENDING state\n");
+          serverState->done = 0;
           // open a file
           if(access(buf + 2, F_OK) != -1){
             serverState->state = SENDING;
             serverState->fp = fopen(buf + 2,"r");
             datalen = fread(databuf,sizeof(char),512,serverState->fp);
-            length = pack_data(sendBuf,1,databuf,datalen);
+            length = pack_data(request->buf,1,databuf,datalen);
+            serverState->done = datalen < 512;
             serverState->block = 1;
-            request.op = DATA;
+            request->op = DATA;
           }else{
-            length = pack_error(sendBuf,FILE_NOT_FOUND,"tftp: file not found\n");
-            request.op = ERROR;
+            length = pack_error(request->buf,FILE_NOT_FOUND,"error: file not found\n");
+            request->op = ERROR;
           }
           break;
         case WRQ :
           vprintf("entering RECEIVING state\n");
+          serverState->done = 0;
           if(access(buf + 2, F_OK) != -1){
-            length = pack_error(sendBuf,FILE_EXISTS,"tftp: file already exists\n");
-            request.op = ERROR;
+            vprintf("error: file already exists");
+            length = pack_error(request->buf,FILE_EXISTS,"error: file already exists\n");
+            request->op = ERROR;
           }else{
             serverState->state = RECEIVING;
             serverState->fp = fopen(buf + 2,"w");
             // send an ack packet
-            length = pack_ack(sendBuf, 0);
-            request.op = ACK;
+            length = pack_ack(request->buf, 0);
+            request->op = ACK;
+            serverState->block = 0;
           }
+          break;
+        case ERROR :
+          handle_error(buf);
           break;
         default:
           vprintf(UNEXPECTED);
           // send an error packet
-          length = pack_error(sendBuf,UNDEFINED,"tftp: unexpected packet\n");
-          request.op = ERROR;
+          length = pack_error(request->buf,UNDEFINED,"tftp: unexpected packet\n");
+          request->op = ERROR;
       }
       break;
     case SENDING :
       switch(opcode){
         case ACK :
           vprintf("packet acknowledged\n");
-          // send another data packet
-          datalen = fread(databuf, sizeof(char), 512, serverState->fp);
-          length = pack_data(sendBuf,serverState->block++,databuf,datalen);
-          request.op = DATA;
-          if(datalen < 512){
-            vprintf("entering WAITING state\n");
-            serverState->state = WAITING;
+          if(getBlockNo(buf) != serverState->block){
+            length = pack_error(request->buf,UNDEFINED,"tftp: wrong block number\n");
+            request->op = 0;
+          }else{
+            if(serverState->done){
+              vprintf("entering WAITING state\n");
+              serverState->state = WAITING;
+              request->op = 0;
+              request->length = 0;
+              fclose(serverState->fp);
+              break;
+            }
+            // send another data packet
+            datalen = fread(databuf, sizeof(char), 512, serverState->fp);
+            length = pack_data(request->buf,serverState->block++,databuf,datalen);
+            request->op = DATA;
+            if(datalen < 512){
+              serverState->done = 1;
+            }
           }
+          break;
+        case ERROR :
+          handle_error(buf);
           break;
         default :
           vprintf(UNEXPECTED);
           serverState->state = WAITING;
           // send an error packet
-          length = pack_error(sendBuf,UNDEFINED,"tftp: unexpected packet\n");
-          request.op = ERROR;
+          length = pack_error(request->buf,UNDEFINED,"tftp: unexpected packet\n");
+          request->op = ERROR;
       }
       break;
     case RECEIVING :
@@ -89,26 +117,32 @@ send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, 
         case DATA :
           vprintf("received data!\n");
           if(getBlockNo(buf) != serverState->block + 1){
-            length = pack_error(sendBuf,UNDEFINED,"tftp: wrong block number\n");
-            request.op = ERROR;
+            length = pack_error(request->buf,UNDEFINED,"tftp: wrong block number\n");
+            request->op = 0;
           }else{
             if(fwrite(buf + 4, sizeof(char), bytes - 4, serverState->fp) < bytes - 4){
-              length = pack_error(sendBuf,DISK_FULL,"tftp: disk is full\n");
-              request.op = ERROR;
+              length = pack_error(request->buf,DISK_FULL,"tftp: disk is full\n");
+              request->op = ERROR;
               serverState->state = WAITING;
             }else{
               // send ack packet
-              length = pack_ack(sendBuf,getBlockNo(buf));
-              request.op = ACK;
+              length = pack_ack(request->buf,getBlockNo(buf));
+              request->op = ACK;
             }
           }
+          if(bytes-4 < 512){
+            fclose(serverState->fp);
+          }
+          break;
+        case ERROR :
+          handle_error(buf);
           break;
         default :
           vprintf(UNEXPECTED);
           serverState->state = WAITING;
           // send an error packet
-          length = pack_error(sendBuf,UNDEFINED,"tftp: unexpected packet\n");
-          request.op = ERROR;
+          length = pack_error(request->buf,UNDEFINED,"tftp: unexpected packet\n");
+          request->op = ERROR;
       }
       break;
     case SHUTDOWN :
@@ -119,10 +153,9 @@ send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, 
       break;
   }
 
-  request.length = length;
-  request.address = *((struct sockaddr *) &address);
-  request.buf = sendBuf;
-  return request;
+  request->length = length;
+  request->address = *((struct sockaddr *) &address);
+  return 0;
 }
 
 

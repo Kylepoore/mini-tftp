@@ -44,15 +44,11 @@ void send_rrq(int sockfd, struct addrinfo *servinfo, char *fn) {
 
 void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
   unsigned int bytes, offset;
+  send_req request;
+  int status;
   char buf[MAXBUFLEN];
-  FILE *fp = NULL;
 
-  if ((fp = fopen(fn, "w")) == NULL) {
-    perror("start_reader: fopen");
-    exit(EXIT_FAILURE);  
-  }
-
-  tftp_state client = setup_client(fp);
+  tftp_state client = setup_client(INIT_READER);
   
   while (!client_done) {
     if ((bytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0,
@@ -71,21 +67,18 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
     
     // Error packet received, terminate connection.
     if (request.op == -1) {
-      free_send_req(request);
       client_busy--;
       return;
     }
 
     // Or If something was wrong with the packet, ignore it.
     if (request.op == 0) {
-      free_send_req(request);  
       client_busy--;
       continue;
     } 
 
     // Otherwise, send the response.
     send_packet(sockfd, request);
-    free_send_req(request);
     client_busy--;
   }
 }

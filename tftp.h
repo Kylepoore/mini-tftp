@@ -43,7 +43,9 @@ typedef enum {
   SENDING,
   RECEIVING,
   SHUTDOWN,
+  INIT_READER,
   READER,
+  INIT_WRITER,
   WRITER
 } protocol_state;
 
@@ -51,11 +53,12 @@ typedef struct {
   protocol_state state;
   int block;
   FILE *fp;
+  int done;
 } tftp_state;
 
 typedef struct {
   struct sockaddr address;
-  char *buf;
+  char buf[MAXBUFLEN];
   int length;
   op_code op;
 } send_req;
