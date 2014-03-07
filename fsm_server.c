@@ -15,7 +15,7 @@ tftp_state setup_fsm_server(){
   return state;
 }
 
-send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, char *buf){
+send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, char *buf, unsigned int bytes){
   send_req request = {.op = 0};
   char databuf[512];
   int opcode = getOpCode(buf);
@@ -31,7 +31,7 @@ send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, 
         case RRQ :
           vprintf("entering SENDING state\n");
           // open a file
-          if(access(buf + 2,F_OK) != -1){
+          if(access(buf + 2, F_OK) != -1){
             serverState->state = SENDING;
             serverState->fp = fopen(buf + 2,"r");
             datalen = fread(databuf,sizeof(char),512,serverState->fp);
@@ -45,10 +45,16 @@ send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, 
           break;
         case WRQ :
           vprintf("entering RECEIVING state\n");
-          serverState->state = RECEIVING;
-          // send an ack packet
-          length = pack_ack(sendBuf, 0);
-          request.op = ACK;
+          if(access(buf + 2, F_OK) != -1){
+            length = pack_error(sendBuf,FILE_EXISTS,"tftp: file already exists\n");
+            request.op = ERROR;
+          }else{
+            serverState->state = RECEIVING;
+            serverState->fp = fopen(buf + 2,"w");
+            // send an ack packet
+            length = pack_ack(sendBuf, 0);
+            request.op = ACK;
+          }
           break;
         default:
           vprintf(UNEXPECTED);
@@ -66,7 +72,7 @@ send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, 
           length = pack_data(sendBuf,serverState->block++,databuf,datalen);
           request.op = DATA;
           if(datalen < 512){
-            vprintf("entering WAITING state");
+            vprintf("entering WAITING state\n");
             serverState->state = WAITING;
           }
           break;
@@ -82,9 +88,20 @@ send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, 
       switch(opcode){
         case DATA :
           vprintf("received data!\n");
-          // send ack packet
-          length = pack_ack(sendBuf,getBlockNo(buf));
-          request.op = ACK;
+          if(getBlockNo(buf) != serverState->block + 1){
+            length = pack_error(sendBuf,UNDEFINED,"tftp: wrong block number\n");
+            request.op = ERROR;
+          }else{
+            if(fwrite(buf + 4, sizeof(char), bytes - 4, serverState->fp) < bytes - 4){
+              length = pack_error(sendBuf,DISK_FULL,"tftp: disk is full\n");
+              request.op = ERROR;
+              serverState->state = WAITING;
+            }else{
+              // send ack packet
+              length = pack_ack(sendBuf,getBlockNo(buf));
+              request.op = ACK;
+            }
+          }
           break;
         default :
           vprintf(UNEXPECTED);
