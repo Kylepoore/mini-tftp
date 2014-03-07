@@ -4,9 +4,11 @@
 #define MOST_SIG(a) ((short)(a) >> 8)
 #define LEAST_SIG(a) (((short)(a) << 8) >> 8)
 
-extern const char *mode_netascii;
+extern const char *mode_octet;
 
 int getOpCode(char *buf);
+
+int getBlockNo(char *buf);
 
 int pack_rrq(char *buf, char *fileName, const char *mode);
 

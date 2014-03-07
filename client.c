@@ -10,12 +10,26 @@
 #include "tftp.h"
 #include "fsm.h"
 #include "packet.h"
+#include <signal.h>
 
-const char *mode_netascii = "netascii\0";
+const char *mode_octet = "octet\0";
+volatile int client_busy = 0;
+volatile int client_done = 0;
+
+void stop_client() {
+  if (client_busy && !client_done) {
+    fprintf(stderr, "\nClient is busy, will shutdown shortly.\n");
+    fprintf(stderr, "\nPress ^C to force shutdown.\n");
+    client_done = 1;
+  } else {
+    fprintf(stderr, "\nClient shutdown.\n");
+    exit(EXIT_FAILURE);
+  }
+}
 
 void send_rrq(int sockfd, struct addrinfo *servinfo, char *fn) {
   char buf[MAXBUFLEN];
-  if (pack_rrq(buf, fn, mode_netascii) == -1) {
+  if (pack_rrq(buf, fn, mode_octet) == -1) {
     perror("send_rrq: pack_rrq");
     exit(EXIT_FAILURE);
   }
@@ -27,19 +41,59 @@ void send_rrq(int sockfd, struct addrinfo *servinfo, char *fn) {
   }
 }
 
-void start_reader(struct addrinfo *servinfo) {
-  tftp_state client_r = setup_fsm_client_r();
+
+
+
+void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
+  unsigned int bytes, offset;
+  char buf[MAXBUFLEN];
+  FILE *fp = NULL;
+
+  if ((fp = fopen(fn, "w")) == NULL) {
+    perror("start_reader: fopen");
+    exit(EXIT_FAILURE);  
+  }
+
+  tftp_state client = setup_client(fp);
+  
+  while (!client_done) {
+    if ((bytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0,
+                          servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
+      perror("start_reader: recvfrom");
+    exit(EXIT_FAILURE);
+    }
+
+    vprintf("Received packet is %d bytes long.\n", bytes);
+    vprintf("Packet contains \"%s\"\n", buf);
+
+    client_busy++;
+
+    // Build the response
+    send_req res = build_response(&client, servinfo->ai_addr, buf);
+    
+    // If something was wrong with the packet, ignore it.
+    if (request->op == 0) {
+      client_busy--;
+      continue;
+    } 
+
+    // Either way, send the response.
+    send_packet(sockfd, res);
+    free_send_req(res);
+    client_busy--;
+  }
+
 
 }
 
 
-void startClient(char *port, char *filename, char *host, 
-                 char clientMode){
+void startClient(char *port, char *filename, char *host, char clientMode) {
   printf("client started\n");
 
   struct addrinfo hints, *servinfo;
   int sockfd, status;
 
+  signal(SIGINT, stop_client);
 
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC;  // Don't care if IPv4 or IPv6
@@ -66,7 +120,7 @@ void startClient(char *port, char *filename, char *host,
   switch(clientMode) {
     case 'r':
       send_rrq(sockfd, servinfo, filename);
-      start_reader(servinfo);
+      start_reader(sockfd, servinfo, filename);
       break;
     case 'w':
       //start_writer(servinfo);

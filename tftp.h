@@ -42,7 +42,9 @@ typedef enum {
   WAITING,
   SENDING,
   RECEIVING,
-  SHUTDOWN
+  SHUTDOWN,
+  READER,
+  WRITER
 } protocol_state;
 
 typedef struct {
