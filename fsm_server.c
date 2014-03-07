@@ -120,7 +120,7 @@ send_req update_fsm_server(tftp_state *serverState, struct sockaddr_in address, 
   }
 
   request.length = length;
-  request.address = address;
+  request.address = *((struct sockaddr *) &address);
   request.buf = sendBuf;
   return request;
 }

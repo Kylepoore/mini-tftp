@@ -13,38 +13,54 @@ tftp_state setup_client(FILE *fi){
   return state;
 }
 
-send_req build_response(tftp_state *client, 
-  struct sockaddr_in address, char *buf){
+send_req build_req(tftp_state *client, 
+  struct sockaddr address, char *buf, unsigned int bytes){
 
-  char data[512];
+  char req_buf[512];
   int op = getOpCode(buf);
-  int block_num = getBlockNo(buf);
+  int block = getBlockNo(buf);
+  int length = 0;
 
-  send_req res = {.op = 0};
+  send_req req = {.op = 0};
 
   switch(client->state) {
     case READER:
       switch(op) {
         case DATA:  
-          if (block_num <= client->block) {
-
+          if (block <= client->block) {
+            return req;
           }
 
+          if (fwrite(buf + 4, sizeof(char), bytes - 4, client->fp) < bytes - 4) {
+            length = pack_error(req_buf, DISK_FULL, "Error: Disk is full.");
+            req.op = ERROR;
+            break;
+          }
+
+          length = pack_ack(req_buf, block);
+          req.op = ACK;
+          break;
+
         case ERROR:
+          fclose(client->fp);
+          req.op = -1;
+          break;
 
-        case default:
+        default:
+          break;
       }
       break;
 
-    case WRITER:
-      switch(op) {
+    // case WRITER:
+    //   switch(op) {
 
-      }
+    //   }
+    //   break;
+
+    default:
       break;
-
-    case default:
   }
+
+  req.address = address;
+  req.length = length;
 }
-
-
-

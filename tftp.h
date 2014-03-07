@@ -54,7 +54,7 @@ typedef struct {
 } tftp_state;
 
 typedef struct {
-  struct sockaddr_in address;
+  struct sockaddr address;
   char *buf;
   int length;
   op_code op;
