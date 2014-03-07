@@ -60,52 +60,12 @@ void startServer(char *port) {
   	  exit(EXIT_FAILURE);
     }
     //server is busy!! please don't interrupt here!!
+
     busy++;
     send_req request = update_fsm_server(&serverState, their_addr, buf);
     send_packet(sockfd, request);
     free_send_req(request);
-/*    char serverMode = 0;
-    //added to get source port number
-    vprintf("got packet from %s, port %d\n", 
-      inet_ntoa(their_addr.sin_addr), ntohs(their_addr.sin_port));
-    vprintf("packet is %d bytes long\n", numbytes);
-    //buf[numbytes] = '\0';
-    //vprintf("packet contains \"%s\"\n", buf);
-    opcode = getOpCode(buf);
-    switch(opcode){
-      case RRQ :
-        vprintf("Read packet received\n");
-        serverMode = 'r';
-        break;
-      case WRQ :
-        vprintf("Write packet received\n");
-        serverMode = 'w';
-        break;
-      case DATA :
-        vprintf("Data packet received\n");
-        break;
-      case ACK :
-        vprintf("Acknowledgement packet received\n");
-        break;
-      case ERROR :
-        vprintf("Error packet received\n");
-        break;
-      default :
-        vprintf("Malformed packet received\n");
-    }
-
-    {
-      //return the packet to sender
-      int bytes_sent;
-  	  if((bytes_sent = sendto(sockfd, buf, strlen(buf), 0, 
-          (struct sockaddr *) & their_addr, sizeof(struct sockaddr))) == -1){
-        perror("send");
-       	exit(EXIT_FAILURE);
-      }
-
-      vprintf("packet sent, %d bytes\n", bytes_sent);
-    }
-*/
     busy--;
+
   }
 }

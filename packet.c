@@ -5,6 +5,10 @@ int getOpCode(char *buf) {
   return ((int)buf[0] << 8) + buf[1];
 }
 
+int getBlockNo(char *buf) {
+  return ((int)buf[2] << 8) + buf[3];
+}
+
 int pack_rrq(char *buf, char *fileName, const char *mode) {
   int length = 2 + strlen(fileName) + strlen(mode) + 2;
   if(length > MAXBUFLEN){

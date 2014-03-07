@@ -2,7 +2,7 @@
 # Kyle Poore
 # March 3, 2014
 
-CC = gcc
+CC = gcc -O3
 LOCALHOST = localhost
 REMOTEHOST = ec2-50-16-148-32.compute-1.amazonaws.com
 FILENAME = test.txt
