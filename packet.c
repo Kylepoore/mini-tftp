@@ -1,12 +1,12 @@
 #include "tftp.h"
 #include "packet.h"
 
-int getOpCode(char *buf) {
-  return ((int)buf[0] << 8) + buf[1];
+unsigned int getOpCode(char *buf) {
+  return ((unsigned int)buf[0] << 8) + (unsigned int)buf[1];
 }
 
-int getBlockNo(char *buf) {
-  return ((int)buf[2] << 8) + buf[3];
+unsigned int getBlockNo(char *buf) {
+  return ((unsigned int)buf[2] << 8) + (unsigned int)buf[3];
 }
 
 int pack_rrq(char *buf, char *fileName, const char *mode) {

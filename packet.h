@@ -6,9 +6,9 @@
 
 extern const char *mode_octet;
 
-int getOpCode(char *buf);
+unsigned int getOpCode(char *buf);
 
-int getBlockNo(char *buf);
+unsigned int getBlockNo(char *buf);
 
 int pack_rrq(char *buf, char *fileName, const char *mode);
 

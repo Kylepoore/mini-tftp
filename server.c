@@ -53,7 +53,7 @@ void startServer(char *port) {
     exit(EXIT_FAILURE);
   }
 
-  //send_req request;
+  send_req request;
 	
   while(!stop) { 
     addr_len = sizeof(struct sockaddr);
@@ -62,7 +62,6 @@ void startServer(char *port) {
   	  exit(EXIT_FAILURE);
     }
     //server is busy!! please don't interrupt here!!
-    send_req request;
     busy++;
     update_fsm_server(&request, &serverState, their_addr, buffer, numbytes);
     send_packet(sockfd, request);

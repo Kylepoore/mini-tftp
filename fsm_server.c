@@ -24,7 +24,7 @@ void handle_error(char *buf){
 int update_fsm_server(send_req *request, tftp_state *serverState, struct sockaddr_in address, char *buf, unsigned int bytes){
   request->op = 0;
   char databuf[512];
-  int opcode = getOpCode(buf);
+  unsigned int opcode = getOpCode(buf);
   int block = -1;
   int length = 0;
   int datalen = 0;
@@ -94,7 +94,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
             }
             // send another data packet
             datalen = fread(databuf, sizeof(char), 512, serverState->fp);
-            length = pack_data(request->buf,serverState->block++,databuf,datalen);
+            length = pack_data(request->buf,++(serverState->block),databuf,datalen);
             request->op = DATA;
             if(datalen < 512){
               serverState->done = 1;
