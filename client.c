@@ -49,35 +49,40 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
   char buf[MAXBUFLEN];
 
   tftp_state client = setup_client(INIT_READER);
+
+  // Need to account for RRQ packet getting lost
+  vprintf("Sending RRQ packet.\n");
+  send_rrq(sockfd, servinfo, fn);  
   
   while (!client_done) {
     if ((bytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0,
                           servinfo->ai_addr, &servinfo->ai_addrlen)) == -1) {
       perror("start_reader: recvfrom");
-    exit(EXIT_FAILURE);
+      exit(EXIT_FAILURE);
     }
-
-    vprintf("Received packet is %d bytes long.\n", bytes);
-    vprintf("Packet contains \"%s\"\n", buf);
+    vprintf("Received %d bytes.\n", bytes);
 
     client_busy++;
 
-    // Build the response
-    send_req request = build_req(&client, *(servinfo->ai_addr), buf, bytes);
-    
+    // Act on received packet and build response
+    status = build_req(&request, &client, *(servinfo->ai_addr), fn, buf, bytes);
+
     // Error packet received, terminate connection.
-    if (request.op == -1) {
+    if (status == -1) {
+      vprintf("Error packet received, terminating.\n");
       client_busy--;
       return;
     }
 
     // Or If something was wrong with the packet, ignore it.
-    if (request.op == 0) {
+    if (status == 0) {
+      vprintf("Something wrong with packet, ignoring.\n");
       client_busy--;
       continue;
     } 
 
     // Otherwise, send the response.
+    vprintf("Sending response packet.\n");
     send_packet(sockfd, request);
     client_busy--;
   }
@@ -85,8 +90,6 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
 
 
 void startClient(char *port, char *filename, char *host, char clientMode) {
-  printf("client started\n");
-
   struct addrinfo hints, *servinfo;
   int sockfd, status;
 
@@ -116,16 +119,19 @@ void startClient(char *port, char *filename, char *host, char clientMode) {
 
   switch(clientMode) {
     case 'r':
-      send_rrq(sockfd, servinfo, filename);
+      vprintf("Starting reader client.\n");
       start_reader(sockfd, servinfo, filename);
       break;
     case 'w':
+      //vprintf("Starting writer client.\n");
       //start_writer(servinfo);
       break;
     default:
+      vprintf("Invalid client mode.\n");
       exit(EXIT_FAILURE);
   }
 
+  vprintf("Client done, shutting down.\n");
   close(sockfd);
   freeaddrinfo(servinfo);
 }
