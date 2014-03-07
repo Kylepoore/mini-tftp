@@ -9,7 +9,7 @@
 #include "packet.h"
 
 tftp_state setup_client(protocol_state st) {
-  tftp_state state = {.state = st, .block = 0};
+  tftp_state state = {.state = st, .block = 1};
   return state;
 }
 
@@ -45,16 +45,25 @@ int build_req(send_req *request, tftp_state *client,
           if (block != 1) {
             return -1;
           }
-
-          FILE *fp = NULL;
-          if ((fp = fopen(fn, "w")) == NULL) {
+          
+          if ((client->fp = fopen(fn, "w")) == NULL) {
             perror("start_reader: fopen");
             exit(EXIT_FAILURE);  
           }
 
-          client->fp = fp;
-          length = file_writer(request, client, buf, bytes);
           client->state = READER;
+          if (file_writer(request, client, buf, bytes) != 0) {
+            vprintf("Preparing to send ERROR for block %d.\n", block);
+            break;
+          }
+
+          if (bytes - 4 < 512) {
+            client->done = 1;
+          }
+
+          vprintf("Preparing to send ACK for block %d.\n", block);
+          length = pack_ack(request->buf, client->block++);
+          request->op = ACK;
           break;
 
         case ERROR:
@@ -74,16 +83,23 @@ int build_req(send_req *request, tftp_state *client,
       vprintf("client->state: READER\n");
       switch(op) {
         case DATA:
-          if (block != client->block + 1) {
+          if (block != client->block) {
             vprintf("Error with block number. Got: %d\n", block);
             return 0;
           }
           vprintf("Block %d received.\n", block);
 
-          length = file_writer(request, client, buf, bytes);
+          if (file_writer(request, client, buf, bytes) != 0) {
+            vprintf("Preparing to send ERROR for block %d.\n", block);
+            break;
+          }
+
+          if (bytes - 4 < 512) {
+            client->done = 1;
+          }
 
           vprintf("Preparing to send ACK for block %d.\n", block);
-          length = pack_ack(request->buf, block);
+          length = pack_ack(request->buf, client->block++);
           request->op = ACK;
           break;
 

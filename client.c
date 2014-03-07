@@ -81,6 +81,11 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
       continue;
     } 
 
+    if (client.done) {
+      fclose(client.fp);
+      client_done = 1;
+    }
+
     // Otherwise, send the response.
     vprintf("Sending response packet.\n");
     send_packet(sockfd, request);
