@@ -62,7 +62,7 @@ void startServer(char *port) {
     //server is busy!! please don't interrupt here!!
 
     busy++;
-    send_req request = update_fsm_server(&serverState, their_addr, buf);
+    send_req request = update_fsm_server(&serverState, their_addr, buf, numbytes);
     send_packet(sockfd, request);
     free_send_req(request);
     busy--;
