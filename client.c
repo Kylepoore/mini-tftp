@@ -42,8 +42,6 @@ void send_rrq(int sockfd, struct addrinfo *servinfo, char *fn) {
 }
 
 
-
-
 void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
   unsigned int bytes, offset;
   char buf[MAXBUFLEN];
@@ -58,7 +56,7 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
   
   while (!client_done) {
     if ((bytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0,
-                          servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
+                          servinfo->ai_addr, &servinfo->ai_addrlen)) == -1) {
       perror("start_reader: recvfrom");
     exit(EXIT_FAILURE);
     }
@@ -69,21 +67,27 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
     client_busy++;
 
     // Build the response
-    send_req res = build_response(&client, servinfo->ai_addr, buf);
+    send_req request = build_req(&client, *(servinfo->ai_addr), buf, bytes);
     
-    // If something was wrong with the packet, ignore it.
-    if (request->op == 0) {
+    // Error packet received, terminate connection.
+    if (request.op == -1) {
+      free_send_req(request);
+      client_busy--;
+      return;
+    }
+
+    // Or If something was wrong with the packet, ignore it.
+    if (request.op == 0) {
+      free_send_req(request);  
       client_busy--;
       continue;
     } 
 
-    // Either way, send the response.
-    send_packet(sockfd, res);
-    free_send_req(res);
+    // Otherwise, send the response.
+    send_packet(sockfd, request);
+    free_send_req(request);
     client_busy--;
   }
-
-
 }
 
 
@@ -129,6 +133,6 @@ void startClient(char *port, char *filename, char *host, char clientMode) {
       exit(EXIT_FAILURE);
   }
 
-
+  close(sockfd);
   freeaddrinfo(servinfo);
 }
