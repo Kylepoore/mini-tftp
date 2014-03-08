@@ -29,18 +29,20 @@ void stopServer() {
 void serverThread(struct sockaddr_in their_addr, tftp_state serverState, send_req request){
   int sockfd;
   struct sockaddr_in my_addr;
-  unsigned int addr_len, numbytes;
+  unsigned int addr_len;
+  int numbytes;
   char buffer[MAXBUFLEN];
   
-  int flags = fcntl(sockfd, F_GETFL);
-  flags |= O_NONBLOCK;
-  fcntl(sockfd, F_SETFL, flags);
     
   if((sockfd=socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
     perror("socket");
     exit(EXIT_FAILURE);
   }
   
+  int flags = fcntl(sockfd, F_GETFL);
+  flags |= O_NONBLOCK;
+  fcntl(sockfd, F_SETFL, flags);
+
   addr_len = sizeof(struct sockaddr);
 
   my_addr.sin_family = AF_INET;
@@ -54,9 +56,11 @@ void serverThread(struct sockaddr_in their_addr, tftp_state serverState, send_re
 
   send_packet(sockfd, request, &serverState);
 	
-  while(serverState.state != SHUTDOWN) { 
+  while(serverState.state != SHUTDOWN) {
+    vprintf("entered server loop\n"); 
    	numbytes = recvfrom_timeout(sockfd, &buffer, MAXBUFLEN, 0, (struct sockaddr *) & their_addr, &addr_len, serverState);
-  	if(numbytes <= 0){    
+    vprintf("exited from recvfrom_timeout\n");
+  	if(numbytes > 0){    
       update_fsm_server(&request, &serverState, their_addr, buffer, numbytes);
     }
     send_packet(sockfd, request, &serverState);

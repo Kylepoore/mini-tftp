@@ -167,7 +167,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
       }
       break;
     case SHUTDOWN :
-      
+      vprintf("reached SHUTDOWN state....\n");      
       break;
     default :
       

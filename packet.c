@@ -91,11 +91,13 @@ int send_packet(int sockfd, send_req request, tftp_state *state) {
 int recvfrom_timeout(int sockfd, void *buf, int len, unsigned int flags, struct sockaddr *from, int *fromlen, tftp_state state){
   int code,timedout = 0;
   do{
-    code = recvfrom(sockfd,buf,len,flags,from,fromlen);
+    code = recvfrom(sockfd,buf,len,0,from,fromlen);
     usleep(1000 * 100);
     timedout = state.wait_time + TIMEOUT < time(NULL); 
+    vprintf("waiting...\n");
   }while(!timedout || code >= 0);
   if(code >=0){
+    vprintf("got a packet!\n");
     return code;
   }else{
     vprintf("response timed out! (since: %zu, now: %zu)\n",state.wait_time,time(NULL));
