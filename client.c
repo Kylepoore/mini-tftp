@@ -47,7 +47,7 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
   int status;
   char buf[MAXBUFLEN];
 
-  tftp_state client = setup_client(INIT_READER);
+  tftp_state client = setup_client(INIT);
 
   // MISSING: Need to account for RRQ packet getting lost
   vprintf("Sending RRQ packet.\n");
@@ -110,7 +110,7 @@ void start_writer(int sockfd, struct addrinfo *servinfo, char *fn) {
   int status;
   char buf[MAXBUFLEN];
 
-  tftp_state client = setup_client(INIT_WRITER);
+  tftp_state client = setup_client(INIT);
 
   // MISSING: Need to account for WRQ packet getting lost
   vprintf("Sending WRQ packet.\n");

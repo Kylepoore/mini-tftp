@@ -131,10 +131,12 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
               vprintf("Sending ACK %d\n", getBlockNo(buf));
               length = pack_ack(request->buf,++(serverState->block));
               request->op = ACK;
+              
+              if(bytes-4 < 512){
+                fclose(serverState->fp);
+                serverState->state = WAITING;
+              }
             }
-          }
-          if(bytes-4 < 512){
-            fclose(serverState->fp);
           }
           break;
         case ERROR :

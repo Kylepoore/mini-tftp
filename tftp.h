@@ -43,9 +43,8 @@ typedef enum {
   SENDING,
   RECEIVING,
   SHUTDOWN,
-  INIT_READER,
+  INIT,
   READER,
-  INIT_WRITER,
   WRITER,
   FINAL
 } protocol_state;
