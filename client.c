@@ -85,7 +85,7 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
 
     // Otherwise, send the response.
     vprintf("Sending response packet.\n");
-    send_packet(sockfd, request);
+    send_packet(sockfd, request, &client);
     client_busy_sig--;
   }
 }
