@@ -151,7 +151,7 @@ void start_writer(int sockfd, struct addrinfo *servinfo, char *fn) {
     }
 
     // Otherwise, send the response.
-    send_packet(sockfd, request);
+    send_packet(sockfd, request, &client);
     client_busy_sig--;
   }
 }

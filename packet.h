@@ -20,6 +20,7 @@ int pack_ack(char *buf, short block);
 
 int pack_error(char *buf, error_code ec, char *errMsg);
 
-int send_packet(int sockfd, send_req request);
+int send_packet(int sockfd, send_req request, tftp_state *state);
 
+int recvfrom_timeout(int sockfd, void *buf, int len, unsigned int flags, struct sockaddr *from, int *fromlen, tftp_state state);
 #endif
