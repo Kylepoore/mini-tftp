@@ -5,10 +5,10 @@ unsigned int getOpCode(char *buf) {
   return ((unsigned int)buf[0] << 8) + (unsigned int)buf[1];
 }
 
-unsigned int getBlockNo(char *buf) {
-  // vprintf("Inside getBlockNo:\n");
-  // vprintf("(unsigned char) buf[2] = 0x%x\n", (unsigned)(unsigned char)buf[2] );
-  // vprintf("(unsigned char) buf[3] = 0x%x\n", (unsigned)(unsigned char)buf[3] );
+unsigned short getBlockNo(char *buf) {
+  vprintf("Inside getBlockNo:\n");
+  vprintf("(unsigned char) buf[2] = 0x%x\n", (unsigned)(unsigned char)buf[2] );
+  vprintf("(unsigned char) buf[3] = 0x%x\n", (unsigned)(unsigned char)buf[3] );
 
   // vprintf("(unsigned) buf[2] = 0x%x\n", (unsigned)buf[2] );
   // vprintf("(unsigned) buf[3] = 0x%x\n", (unsigned)buf[3] );
@@ -16,7 +16,7 @@ unsigned int getBlockNo(char *buf) {
   // vprintf("MOST_SIG = %d\n", (unsigned)buf[2] << 8 );
   // vprintf("LEAST_SIG = %d\n", (unsigned)buf[3] );
 
-  return ((unsigned)(unsigned char)buf[2] << 8) + ((unsigned)(unsigned char)buf[3]);
+  return ((unsigned short)(unsigned char)buf[2] << 8) + ((unsigned short)(unsigned char)buf[3]);
 }
 
 // Could probably collapse pack_rrq and pack_wrq into one

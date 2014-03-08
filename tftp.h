@@ -51,7 +51,7 @@ typedef enum {
 
 typedef struct {
   protocol_state state;
-  int block;
+  unsigned short block;
   FILE *fp;
   int done;
 } tftp_state;

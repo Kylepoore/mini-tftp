@@ -24,7 +24,7 @@ int error_handler(tftp_state *client) {
 }
 
 void data_handler(send_req *request, tftp_state *client, 
-  char *buf, unsigned int bytes, int block) {
+  char *buf, unsigned int bytes, unsigned short block) {
   
   size_t bytes_written = 0;
 
@@ -53,7 +53,7 @@ int build_req(send_req *request, tftp_state *client,
   struct sockaddr address, char *fn, char *buf, unsigned int bytes) {
 
   int op = getOpCode(buf);
-  int block = getBlockNo(buf);
+  unsigned short block = getBlockNo(buf);
   int length = 0;
   char data_buf[512];
   size_t bytes_read = 0;
@@ -147,9 +147,15 @@ int build_req(send_req *request, tftp_state *client,
       switch(op) {
         case ACK:
           vprintf("Type: ACK  |  Block: %d\n", block);
+          vprintf("client->block = %d\n", client->block);
+          vprintf("block + 1 = %d\n", block + 1);          
+
+          vprintf("sizeof(client->block) = %zu\n", sizeof(client->block));
+          vprintf("sizeof(block) = %zu\n", sizeof(block));
 
           // ACK block # should be equal to my previous. If not, ignore it. 
-          if (block != client->block - 1) {
+          if ((unsigned short)(block + 1) != client->block) {
+            vprintf("FAILED: block + 1 = %d, client->block = %d\n", block + 1, client->block);
             return 0;
           }
 
@@ -162,6 +168,7 @@ int build_req(send_req *request, tftp_state *client,
           request->length = pack_data(request->buf, client->block++, data_buf, bytes_read);
           request->op = DATA;
 
+          vprintf("client->block = %d\n", client->block);
           // Still need to wait for final ACK, before terminating.
           if (bytes_read < 512) {
             client->state = FINAL;

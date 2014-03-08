@@ -11,7 +11,7 @@
 #define UNEXPECTED "unexpected packet!\n"
 
 tftp_state setup_fsm_server(){
-  tftp_state state = {.state = WAITING, .block = -1};
+  tftp_state state = {.state = WAITING, .block = 0};
   return state;
 }
 
@@ -25,7 +25,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
   request->op = 0;
   char databuf[512];
   unsigned int opcode = getOpCode(buf);
-  int block = -1;
+  unsigned short block = 0;
   int length = 0;
   int datalen = 0;
   vprintf("got packet from %s, port %d\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
@@ -117,8 +117,8 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
       switch(opcode){
         case DATA :
           vprintf("received data block %d!\n", getBlockNo(buf));
-          vprintf("serverState->block = %d\n", serverState->block);
-          if(getBlockNo(buf) != serverState->block + 1){
+          vprintf("serverState->block + 1 = %d\n", serverState->block);
+          if(getBlockNo(buf) != (unsigned short)(serverState->block + 1)){
             length = pack_error(request->buf,UNDEFINED,"tftp: wrong block number\n");
             request->op = 0;
           }else{
