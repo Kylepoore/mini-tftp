@@ -83,7 +83,7 @@ int build_req(send_req *request, tftp_state *client,
             break;
 
           case ACK:
-            vprintf("Packet Type: ACK\n");
+            vprintf("Type: ACK  |  Block: %d\n", block);
 
             // First ACK block # should be 0. Otherwise, ignore it. 
             if (block != 0) {
@@ -146,7 +146,7 @@ int build_req(send_req *request, tftp_state *client,
       vprintf("client->state: WRITER\n");
       switch(op) {
         case ACK:
-          vprintf("Packet Type: ACK\n");
+          vprintf("Type: ACK  |  Block: %d\n", block);
 
           // ACK block # should be equal to my previous. If not, ignore it. 
           if (block != client->block - 1) {

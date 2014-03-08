@@ -6,7 +6,17 @@ unsigned int getOpCode(char *buf) {
 }
 
 unsigned int getBlockNo(char *buf) {
-  return ((unsigned int)buf[2] << 8) + (unsigned int)buf[3];
+  // vprintf("Inside getBlockNo:\n");
+  // vprintf("(unsigned char) buf[2] = 0x%x\n", (unsigned)(unsigned char)buf[2] );
+  // vprintf("(unsigned char) buf[3] = 0x%x\n", (unsigned)(unsigned char)buf[3] );
+
+  // vprintf("(unsigned) buf[2] = 0x%x\n", (unsigned)buf[2] );
+  // vprintf("(unsigned) buf[3] = 0x%x\n", (unsigned)buf[3] );
+
+  // vprintf("MOST_SIG = %d\n", (unsigned)buf[2] << 8 );
+  // vprintf("LEAST_SIG = %d\n", (unsigned)buf[3] );
+
+  return ((unsigned)(unsigned char)buf[2] << 8) + ((unsigned)(unsigned char)buf[3]);
 }
 
 // Could probably collapse pack_rrq and pack_wrq into one
@@ -41,10 +51,15 @@ int pack_data(char *buf, short block, char *data, int dataLength) {
   if(length > MAXBUFLEN){
     return -1;
   }
+
+  vprintf("Inside pack_data: \n");
   buf[0] = MOST_SIG(DATA);
   buf[1] = LEAST_SIG(DATA);
   buf[2] = MOST_SIG(block);
+  vprintf("buf[2] = 0x%x\n", (unsigned)(unsigned char)buf[2] );
   buf[3] = LEAST_SIG(block);
+  vprintf("buf[3] = 0x%x\n", (unsigned)(unsigned char)buf[3] );
+
   memcpy(buf + 4, data, dataLength);
   return length;
 }
