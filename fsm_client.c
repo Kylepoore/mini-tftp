@@ -13,20 +13,40 @@ tftp_state setup_client(protocol_state st) {
   return state;
 }
 
-// size_t file_reader(FILE *fp, char *buf, unsigned int bytes) {
-//   vprintf("Reading %d bytes from file.\n", bytes);
-//   return fread(buf + 4, sizeof(char), bytes - 4, fp);
-// }
-
-// size_t file_writer(FILE *fp, char *buf, unsigned int bytes) {
-//   vprintf("Writing %d bytes from buffer.\n", bytes);
-//   return fwrite(buf + 4, sizeof(char), bytes - 4, fp);
-// }
+int done(unsigned int bytes) {
+  return (bytes - 4) < 512;
+}
 
 int error_handler(tftp_state *client) {
   vprintf("Packet Type: ERROR\n");
   client->done = 1;
   return -1;
+}
+
+void data_handler(send_req *request, tftp_state *client, 
+  char *buf, unsigned int bytes, int block) {
+  
+  size_t bytes_written = 0;
+
+  vprintf("Writing %d bytes from buffer.\n", bytes - 4);
+  if ((bytes_written = fwrite(buf + 4, sizeof(char), bytes - 4, client->fp)) < bytes - 4 
+       && !client->done) {
+    vprintf("Wrote %zu of %d bytes from buffer.\n", bytes_written, bytes);
+    vprintf("Preparing to send ERROR for block %d.\n", block);
+    request->length = pack_error(request->buf, DISK_FULL, "Error: Disk is full.");
+    request->op = ERROR;    
+    client->done = 1;
+    return;
+  }
+
+  // If this is the first and only, or last DATA packet.
+  if (done(bytes)) {
+    client->done = 1;
+  }
+
+  vprintf("Sending ACK for block %d.\n", block);
+  request->length = pack_ack(request->buf, client->block++);
+  request->op = ACK;
 }
 
 int build_req(send_req *request, tftp_state *client, 
@@ -36,7 +56,6 @@ int build_req(send_req *request, tftp_state *client,
   int block = getBlockNo(buf);
   int length = 0;
   char data_buf[512];
-  size_t bytes_written = 0;
   size_t bytes_read = 0;
 
   request->op = 0;
@@ -47,7 +66,7 @@ int build_req(send_req *request, tftp_state *client,
       vprintf("client->state: INIT\n");
         switch(op) {
           case DATA:
-            vprintf("Packet Type: DATA\n");
+            vprintf("Type: DATA | Block: %d\n", block);
           
             // First data block # should be 1. Otherwise, ignore it. 
             if (block != 1) {
@@ -59,29 +78,8 @@ int build_req(send_req *request, tftp_state *client,
               exit(EXIT_FAILURE);  
             }
 
-            // If requested file fits entirely in first DATA packet.
-            if (bytes - 4 < 512) {
-              client->done = 1;
-            }
-
-            // REFACTOR: Same as READER
-            vprintf("Writing %d bytes from buffer.\n", bytes - 4);
-            if ((bytes_written = fwrite(buf + 4, sizeof(char), bytes - 4, client->fp)) < bytes - 4 
-                 && !client->done) {
-              vprintf("Wrote %zu of %d bytes from buffer.\n", bytes_written, bytes);
-              vprintf("Preparing to send ERROR for block %d.\n", block);
-              length = pack_error(request->buf, DISK_FULL, "Error: Disk is full.");
-              request->op = ERROR;    
-              client->done = 1;
-              break;
-            }
-
-            // REFACTOR: Same as READER
-            vprintf("Sending ACK for block %d.\n", block);
-            length = pack_ack(request->buf, client->block++);
-            request->op = ACK;
-
             client->state = READER;
+            data_handler(request, client, buf, bytes, block);
             break;
 
           case ACK:
@@ -103,7 +101,7 @@ int build_req(send_req *request, tftp_state *client,
 
             // REFACTOR: same as WRITER
             vprintf("Sending DATA block %d.\n", client->block);
-            length = pack_data(request->buf, client->block++, data_buf, bytes_read);
+            request->length = pack_data(request->buf, client->block++, data_buf, bytes_read);
             request->op = DATA;
 
             // Still need to wait for final ACK, before terminating.
@@ -127,33 +125,13 @@ int build_req(send_req *request, tftp_state *client,
 
       switch(op) {
         case DATA:
+          vprintf("Type: DATA | Block: %d\n", block);
           if (block != client->block) {
             vprintf("Error with block number. Got: %d\n", block);
             return 0;
           }
-          vprintf("Block %d received.\n", block);
 
-          // REFACTOR: Same as READER
-          vprintf("Writing %d bytes from buffer.\n", bytes - 4);
-          if ((bytes_written = fwrite(buf + 4, sizeof(char), bytes - 4, client->fp)) < bytes - 4 
-               && !client->done) {
-            vprintf("Wrote %zu of %d bytes from buffer.\n", bytes_written, bytes);
-            vprintf("Preparing to send ERROR for block %d.\n", block);
-            length = pack_error(request->buf, DISK_FULL, "Error: Disk is full.");
-            request->op = ERROR;    
-            client->done = 1;
-            break;
-          }
-
-          // If this is last DATA packet.
-          if (bytes - 4 < 512) {
-            client->done = 1;
-          }
-
-          // REFACTOR: Same as INIT
-          vprintf("Sending ACK for block %d.\n", block);
-          length = pack_ack(request->buf, client->block++);
-          request->op = ACK;
+          data_handler(request, client, buf, bytes, block);
           break;
 
         case ERROR:
@@ -181,7 +159,7 @@ int build_req(send_req *request, tftp_state *client,
 
           // REFACTOR: same as INIT_WRITER
           vprintf("Sending DATA block %d.\n", client->block);
-          length = pack_data(request->buf, client->block++, data_buf, bytes_read);
+          request->length = pack_data(request->buf, client->block++, data_buf, bytes_read);
           request->op = DATA;
 
           // Still need to wait for final ACK, before terminating.
@@ -224,7 +202,6 @@ int build_req(send_req *request, tftp_state *client,
   }
 
   request->address = address;
-  request->length = length;
 
   return 1;
 }
