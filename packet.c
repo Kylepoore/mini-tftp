@@ -9,6 +9,9 @@ unsigned int getBlockNo(char *buf) {
   return ((unsigned int)buf[2] << 8) + (unsigned int)buf[3];
 }
 
+// Could probably collapse pack_rrq and pack_wrq into one
+// just pass in the type (either WRQ or RRQ)
+
 int pack_rrq(char *buf, char *fileName, const char *mode) {
   int length = 2 + strlen(fileName) + strlen(mode) + 2;
   if(length > MAXBUFLEN){

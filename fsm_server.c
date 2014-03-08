@@ -61,6 +61,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
             serverState->state = RECEIVING;
             serverState->fp = fopen(buf + 2,"w");
             // send an ack packet
+            vprintf("Sent ACK 0\n");
             length = pack_ack(request->buf, 0);
             request->op = ACK;
             serverState->block = 0;
@@ -115,7 +116,8 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
     case RECEIVING :
       switch(opcode){
         case DATA :
-          vprintf("received data!\n");
+          vprintf("received data block %d!\n", getBlockNo(buf));
+          vprintf("serverState->block = %d\n", serverState->block);
           if(getBlockNo(buf) != serverState->block + 1){
             length = pack_error(request->buf,UNDEFINED,"tftp: wrong block number\n");
             request->op = 0;
@@ -126,7 +128,8 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
               serverState->state = WAITING;
             }else{
               // send ack packet
-              length = pack_ack(request->buf,getBlockNo(buf));
+              vprintf("Sending ACK %d\n", getBlockNo(buf));
+              length = pack_ack(request->buf,++(serverState->block));
               request->op = ACK;
             }
           }

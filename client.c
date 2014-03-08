@@ -13,14 +13,14 @@
 #include <signal.h>
 
 const char *mode_octet = "octet\0";
-volatile int client_busy = 0;
-volatile int client_done = 0;
+volatile int client_busy_sig = 0;
+volatile int client_done_sig = 0;
 
 void stop_client() {
-  if (client_busy && !client_done) {
+  if (client_busy_sig && !client_done_sig) {
     fprintf(stderr, "\nClient is busy, will shutdown shortly.\n");
     fprintf(stderr, "\nPress ^C to force shutdown.\n");
-    client_done = 1;
+    client_done_sig = 1;
   } else {
     fprintf(stderr, "\nClient shutdown.\n");
     exit(EXIT_FAILURE);
@@ -41,7 +41,6 @@ void send_rrq(int sockfd, struct addrinfo *servinfo, char *fn) {
   }
 }
 
-
 void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
   unsigned int bytes, offset;
   send_req request;
@@ -50,11 +49,11 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
 
   tftp_state client = setup_client(INIT_READER);
 
-  // Need to account for RRQ packet getting lost
+  // MISSING: Need to account for RRQ packet getting lost
   vprintf("Sending RRQ packet.\n");
   send_rrq(sockfd, servinfo, fn);  
   
-  while (!client_done) {
+  while (!client_done_sig) {
     if ((bytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0,
                           servinfo->ai_addr, &servinfo->ai_addrlen)) == -1) {
       perror("start_reader: recvfrom");
@@ -62,34 +61,98 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
     }
     vprintf("Received %d bytes.\n", bytes);
 
-    client_busy++;
+    client_busy_sig++;
 
     // Act on received packet and build response
     status = build_req(&request, &client, *(servinfo->ai_addr), fn, buf, bytes);
 
-    // Error packet received, terminate connection.
-    if (status == -1) {
-      vprintf("Error packet received, terminating.\n");
-      client_busy--;
-      return;
-    }
-
-    // Or If something was wrong with the packet, ignore it.
-    if (status == 0) {
-      vprintf("Something wrong with packet, ignoring.\n");
-      client_busy--;
-      continue;
-    } 
-
     if (client.done) {
       fclose(client.fp);
-      client_done = 1;
+      client_done_sig = 1;
     }
+
+    switch(status) {
+      client_busy_sig--;
+
+      case -1:
+        vprintf("Error packet received, terminating.\n");
+        return;
+
+      case 0:
+        vprintf("Something wrong with packet, ignoring.\n");
+        continue;
+    } 
 
     // Otherwise, send the response.
     vprintf("Sending response packet.\n");
     send_packet(sockfd, request);
-    client_busy--;
+    client_busy_sig--;
+  }
+}
+
+void send_wrq(int sockfd, struct addrinfo *servinfo, char *fn) {
+  char buf[MAXBUFLEN];
+  if (pack_wrq(buf, fn, mode_octet) == -1) {
+    perror("send_rrq: pack_rrq");
+    exit(EXIT_FAILURE);
+  }
+
+  if (sendto(sockfd, buf, MAXBUFLEN, 0, 
+             servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
+    perror("send_rrq: sendto");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void start_writer(int sockfd, struct addrinfo *servinfo, char *fn) {
+  unsigned int bytes, offset;
+  send_req request;
+  int status;
+  char buf[MAXBUFLEN];
+
+  tftp_state client = setup_client(INIT_WRITER);
+
+  // MISSING: Need to account for WRQ packet getting lost
+  vprintf("Sending WRQ packet.\n");
+  send_wrq(sockfd, servinfo, fn);  
+  
+  while (!client_done_sig) {
+    if ((bytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0,
+                          servinfo->ai_addr, &servinfo->ai_addrlen)) == -1) {
+      perror("start_writer: recvfrom");
+      exit(EXIT_FAILURE);
+    }
+    vprintf("Received %d bytes.\n", bytes);
+
+    client_busy_sig++;
+
+    // Act on received packet and build response
+    status = build_req(&request, &client, *(servinfo->ai_addr), fn, buf, bytes);
+
+    if (client.done) {
+      fclose(client.fp);
+      client_done_sig = 1;
+    }
+
+    switch(status) {
+      client_busy_sig--;
+
+      case -1:
+        vprintf("Error packet received, terminating.\n");
+        return;
+
+      case 0:
+        vprintf("Something wrong with packet, ignoring.\n");
+        continue;
+
+      case 2:
+        vprintf("Received final ACK.\n");
+        return;
+    }
+
+    // Otherwise, send the response.
+    send_packet(sockfd, request);
+    client_busy_sig--;
   }
 }
 
@@ -128,12 +191,12 @@ void startClient(char *port, char *filename, char *host, char clientMode) {
       start_reader(sockfd, servinfo, filename);
       break;
     case 'w':
-      //vprintf("Starting writer client.\n");
-      //start_writer(servinfo);
+      vprintf("Starting writer client.\n");
+      start_writer(sockfd, servinfo, filename);
       break;
     default:
       vprintf("Invalid client mode.\n");
-      exit(EXIT_FAILURE);
+      break;
   }
 
   vprintf("Client done, shutting down.\n");

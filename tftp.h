@@ -46,7 +46,8 @@ typedef enum {
   INIT_READER,
   READER,
   INIT_WRITER,
-  WRITER
+  WRITER,
+  FINAL
 } protocol_state;
 
 typedef struct {
