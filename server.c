@@ -26,6 +26,44 @@ void stopServer() {
   }
 }
 
+void serverThread(struct sockaddr_in their_addr, tftp_state serverState, send_req request){
+  int sockfd;
+  struct sockaddr_in my_addr;
+  unsigned int addr_len, numbytes;
+  char buffer[MAXBUFLEN];
+  
+    
+  if((sockfd=socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+    perror("socket");
+    exit(EXIT_FAILURE);
+  }
+  
+  int flags = fcntl(sockfd, F_GETFL);
+  flags |= O_NONBLOCK;
+  fcntl(sockfd, F_SETFL, flags);
+  
+  addr_len = sizeof(struct sockaddr);
+	
+  connect(sockfd, (struct sockaddr *)&their_addr,addr_len);
+
+  vprintf("serving connection to %s %d\n", inet_ntoa(their_addr.sin_addr), ntohs(their_addr.sin_port)); 
+
+  send_packet(sockfd, request, &serverState);
+	
+  while(serverState.state != SHUTDOWN) { 
+   	numbytes = recvfrom_timeout(sockfd, &buffer, MAXBUFLEN, 0, (struct sockaddr *) & their_addr, &addr_len, serverState);
+  	if(numbytes <= 0){    
+      update_fsm_server(&request, &serverState, their_addr, buffer, numbytes);
+    }
+    send_packet(sockfd, request, &serverState);
+
+  }
+}
+
+
+
+
+
 void startServer(char *port) {
   printf("server mode\n");
   int sockfd;
@@ -34,8 +72,6 @@ void startServer(char *port) {
   unsigned int addr_len, numbytes;
   char buffer[MAXBUFLEN];
   int portnum = atoi(port);
-  int opcode = 0;
-  tftp_state serverState = setup_fsm_server();
   signal(SIGINT,stopServer);
   
   if((sockfd=socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
@@ -53,8 +89,6 @@ void startServer(char *port) {
     exit(EXIT_FAILURE);
   }
 
-  send_req request;
-	
   while(!stop) { 
     addr_len = sizeof(struct sockaddr);
    	if((numbytes = recvfrom(sockfd, &buffer, MAXBUFLEN, 0, (struct sockaddr *) & their_addr, &addr_len)) == -1){
@@ -63,8 +97,10 @@ void startServer(char *port) {
     }
     //server is busy!! please don't interrupt here!!
     busy++;
+    send_req request;
+    tftp_state serverState = setup_fsm_server();
     update_fsm_server(&request, &serverState, their_addr, buffer, numbytes);
-    send_packet(sockfd, request);
+    serverThread(their_addr, serverState, request);
     busy--;
 
   }

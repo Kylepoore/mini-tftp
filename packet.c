@@ -67,10 +67,13 @@ int pack_error(char *buf, error_code ec, char *errMsg) {
   return length;
 }
 
-int send_packet(int sockfd, send_req request) {
+int send_packet(int sockfd, send_req request, tftp_state *state) {
   int bytes_sent;
   if(request.op == 0){
     return -1;
+  }
+  if(request.TID == state->TID){
+    state->wait_time = time(NULL);
   }
   if((bytes_sent = sendto(sockfd, request.buf, request.length, 0, 
       (struct sockaddr *) & request.address, sizeof(struct sockaddr))) == -1) {
@@ -82,3 +85,18 @@ int send_packet(int sockfd, send_req request) {
   return bytes_sent;
 }
 
+int recvfrom_timeout(int sockfd, void *buf, int len, unsigned int flags, struct sockaddr *from, int *fromlen, tftp_state state){
+  int code,timedout = 0;
+  do{
+    code = recvfrom(sockfd,buf,len,flags,from,fromlen);
+    usleep(1000 * 100);
+    timedout = state.wait_time + TIMEOUT < time(NULL); 
+  }while(!timedout || code >= 0);
+  if(code >=0){
+    return code;
+  }else{
+    vprintf("response timed out! (since: %zu, now: %zu)\n",state.wait_time,time(NULL));
+    return -1;
+  }
+  
+}

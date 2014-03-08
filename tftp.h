@@ -11,6 +11,8 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <time.h>
 
 #define vprintf(format, ...) do {                  \
   if (verbose)                                     \
@@ -18,6 +20,7 @@
 } while(0)
 
 #define MAXBUFLEN 1024
+#define TIMEOUT   5
 
 typedef enum {
   UNDEFINED = 0,
@@ -46,7 +49,8 @@ typedef enum {
   INIT_READER,
   READER,
   INIT_WRITER,
-  WRITER
+  WRITER,
+  FINAL
 } protocol_state;
 
 typedef struct {
@@ -54,6 +58,8 @@ typedef struct {
   int block;
   FILE *fp;
   int done;
+  int TID;
+  time_t wait_time;
 } tftp_state;
 
 typedef struct {
@@ -61,6 +67,7 @@ typedef struct {
   char buf[MAXBUFLEN];
   int length;
   op_code op;
+  int TID;
 } send_req;
 
 extern int verbose;
