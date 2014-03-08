@@ -39,6 +39,7 @@ void send_rrq(int sockfd, struct addrinfo *servinfo, char *fn) {
     perror("send_rrq: sendto");
     exit(EXIT_FAILURE);
   }
+  vprintf("AFTER SENDTO RRQ.\n");
 }
 
 void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
@@ -47,24 +48,30 @@ void start_reader(int sockfd, struct addrinfo *servinfo, char *fn) {
   int status;
   char buf[MAXBUFLEN];
 
+  struct sockaddr_in their_addr;
+  int addr_len = sizeof(their_addr);
+
   tftp_state client = setup_client(INIT);
 
   // MISSING: Need to account for RRQ packet getting lost
   vprintf("Sending RRQ packet.\n");
   send_rrq(sockfd, servinfo, fn);  
-  
+  vprintf("After send_rrq call.\n");
+
   while (!client_done_sig) {
+    vprintf("Before recvfrom.\n");
     if ((bytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0,
-                          servinfo->ai_addr, &servinfo->ai_addrlen)) == -1) {
+                          (struct sockaddr *)&their_addr, &addr_len)) == -1) {
       perror("start_reader: recvfrom");
       exit(EXIT_FAILURE);
     }
     vprintf("Received %d bytes.\n", bytes);
 
-    client_busy_sig++;
+    vprintf("got packet from %s %d\n", inet_ntoa(their_addr.sin_addr), ntohs(their_addr.sin_port));
 
+    client_busy_sig++;
     // Act on received packet and build response
-    status = build_req(&request, &client, *(servinfo->ai_addr), fn, buf, bytes);
+    status = build_req(&request, &client, *((struct sockaddr *)&their_addr), fn, buf, bytes);
 
     if (client.done) {
       fclose(client.fp);
@@ -160,6 +167,8 @@ void start_writer(int sockfd, struct addrinfo *servinfo, char *fn) {
 void startClient(char *port, char *filename, char *host, char clientMode) {
   struct addrinfo hints, *servinfo;
   int sockfd, status;
+  struct sockaddr_in my_addr;
+  int addr_len;
 
   signal(SIGINT, stop_client);
 
@@ -179,11 +188,27 @@ void startClient(char *port, char *filename, char *host, char clientMode) {
     exit(EXIT_FAILURE);
   }
 
-  if (connect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
+  // int flags = fcntl(sockfd, F_GETFL);
+  // flags |= O_NONBLOCK;
+  // fcntl(sockfd, F_SETFL, flags);
+
+  addr_len = sizeof(struct sockaddr);
+
+  my_addr.sin_family = AF_INET;
+  my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  my_addr.sin_port = 0;
+
+  if (bind(sockfd, (struct sockaddr *)&my_addr,addr_len) == -1) {
     close(sockfd);
-    perror("connect");
+    perror("bind");
     exit(EXIT_FAILURE);
   }
+
+  // if (bind(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
+  //   close(sockfd);
+  //   perror("bind");
+  //   exit(EXIT_FAILURE);
+  // }
 
   switch(clientMode) {
     case 'r':

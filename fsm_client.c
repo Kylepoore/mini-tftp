@@ -58,6 +58,8 @@ int build_req(send_req *request, tftp_state *client,
   char data_buf[512];
   size_t bytes_read = 0;
 
+  int port = ntohs(((struct sockaddr_in *)&address)->sin_port);
+
   request->op = 0;
 
   switch(client->state) {
@@ -72,6 +74,8 @@ int build_req(send_req *request, tftp_state *client,
             if (block != 1) {
               return 0;
             }
+
+            client->TID = port;
 
             if ((client->fp = fopen(fn, "w")) == NULL) {
               perror("INIT->DATA: fopen");

@@ -99,7 +99,8 @@ int send_packet(int sockfd, send_req request, tftp_state *state) {
     exit(EXIT_FAILURE);
   }
 
-  vprintf("packet sent, %d bytes\n", bytes_sent);
+  vprintf("sent %d bytes to %s %d\n", bytes_sent, inet_ntoa(((struct sockaddr_in *)&request.address)->sin_addr), ntohs(((struct sockaddr_in *)&request.address)->sin_port));
+
   return bytes_sent;
 }
 
@@ -110,8 +111,8 @@ int recvfrom_timeout(int sockfd, void *buf, int len, unsigned int flags, struct 
     usleep(1000 * 100);
     timedout = state.wait_time + TIMEOUT < time(NULL); 
     vprintf("waiting...\n");
-  }while(!timedout || code >= 0);
-  if(code >=0){
+  }while(code <= 0 && !timedout);
+  if(code > 0){
     vprintf("got a packet!\n");
     return code;
   }else{
