@@ -113,7 +113,6 @@ int recvfrom_timeout(int sockfd, void *buf, int len, unsigned int flags, struct 
     code = recvfrom(sockfd,buf,len,0,from,fromlen);
     usleep(1000 * 1);
     timedout = state.wait_time + TIMEOUT < time(NULL); 
-    vprintf("waiting...\n");
   }while(code <= 0 && !timedout);
   if(code > 0){
     vprintf("got a packet!\n");
