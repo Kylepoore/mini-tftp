@@ -146,7 +146,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
               
               if(bytes-4 < 512){
                 fclose(serverState->fp);
-                serverState->state = WAITING;
+                serverState->state = SHUTDOWN;
               }
             }
           }

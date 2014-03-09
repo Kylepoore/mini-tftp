@@ -90,12 +90,15 @@ int send_packet(int sockfd, send_req request, tftp_state *state) {
   if(request.op == 0){
     return -1;
   }
+  vprintf("request.TID = %d\n", request.TID);
+  vprintf("state->TID = %d\n", state->TID);
+
   if(request.TID == state->TID){
     state->wait_time = time(NULL);
   }
   if((bytes_sent = sendto(sockfd, request.buf, request.length, 0, 
       (struct sockaddr *) & request.address, sizeof(struct sockaddr))) == -1) {
-    perror("send");
+    perror("send_packet->sendto");
     exit(EXIT_FAILURE);
   }
 
@@ -108,7 +111,7 @@ int recvfrom_timeout(int sockfd, void *buf, int len, unsigned int flags, struct 
   int code,timedout = 0;
   do{
     code = recvfrom(sockfd,buf,len,0,from,fromlen);
-    usleep(1000 * 100);
+    usleep(1000 * 1);
     timedout = state.wait_time + TIMEOUT < time(NULL); 
     vprintf("waiting...\n");
   }while(code <= 0 && !timedout);

@@ -74,7 +74,7 @@ int build_req(send_req *request, tftp_state *client,
             if (block != 1) {
               return 0;
             }
-
+            client->wait_time = time(NULL);
             client->TID = port;
 
             if ((client->fp = fopen(fn, "w")) == NULL) {
@@ -94,10 +94,14 @@ int build_req(send_req *request, tftp_state *client,
               return 0;
             }
 
+            client->wait_time = time(NULL);
+            client->TID = port;
+            
             if ((client->fp = fopen(fn, "r")) == NULL) {
               perror("INIT->ACK: fopen");
               exit(EXIT_FAILURE);  
             }
+
 
             bytes_read = fread(data_buf, sizeof(char), 512, client->fp);
             vprintf("Read %zu bytes from file.\n", bytes_read);
@@ -135,6 +139,7 @@ int build_req(send_req *request, tftp_state *client,
             return 0;
           }
 
+          client->wait_time = time(NULL);
           data_handler(request, client, buf, bytes, block);
           break;
 
@@ -163,6 +168,7 @@ int build_req(send_req *request, tftp_state *client,
             return 0;
           }
 
+          client->wait_time = time(NULL);
           bytes_read = fread(data_buf, sizeof(char), 512, client->fp);
           vprintf("Read %zu bytes from file.\n", bytes_read);
 
@@ -199,6 +205,7 @@ int build_req(send_req *request, tftp_state *client,
             return 0;
           }
 
+          client->wait_time = time(NULL);
           // Received final ACK, success.
           client->done = 1;
           return 2;
@@ -213,6 +220,7 @@ int build_req(send_req *request, tftp_state *client,
   }
 
   request->address = address;
+  request->TID = port;
 
   return 1;
 }
