@@ -1,5 +1,5 @@
 /*
-** main.c
+** tftp.c
 ** 
 ** Authors: Kyle Poore, Robert Correiro
 ** Created: Mar 3, 2014
@@ -44,6 +44,7 @@ int main(int argc,char **argv) {
         break;
       default:
         printf("invalid option\n"); 
+        exit(EXIT_SUCCESS);
     }
   }
 

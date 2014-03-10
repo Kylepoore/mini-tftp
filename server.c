@@ -48,16 +48,17 @@ void serverThread(struct sockaddr_in their_addr, tftp_state serverState, send_re
   my_addr.sin_family = AF_INET;
   my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   my_addr.sin_port = 0;
+  memset(&(my_addr.sin_zero), '\0', 8);
 	
-  bind(sockfd, (struct sockaddr *)&my_addr,addr_len);
+  bind(sockfd, (struct sockaddr *)&their_addr,addr_len);
   getsockname(sockfd,(struct sockaddr *) & my_addr,&addr_len);
   int port = ntohs(my_addr.sin_port);
   vprintf("serving connection to %s %d from %s %d\n", inet_ntoa(their_addr.sin_addr), ntohs(their_addr.sin_port), inet_ntoa(my_addr.sin_addr),port); 
 
   send_packet(sockfd, request, &serverState);
 	
+  vprintf("entering server loop\n"); 
   while(serverState.state != SHUTDOWN) {
-    vprintf("entered server loop\n"); 
    	numbytes = recvfrom_timeout(sockfd, &buffer, MAXBUFLEN, 0, (struct sockaddr *) & their_addr, &addr_len, serverState);
     vprintf("exited from recvfrom_timeout\n");
   	if(numbytes > 0){    
@@ -97,8 +98,9 @@ void startServer(char *port) {
     exit(EXIT_FAILURE);
   }
 
+  addr_len = sizeof(struct sockaddr);
+  
   while(!stop) { 
-    addr_len = sizeof(struct sockaddr);
    	if((numbytes = recvfrom(sockfd, &buffer, MAXBUFLEN, 0, (struct sockaddr *) & their_addr, &addr_len)) == -1){
 	    perror("recvfrom");
   	  exit(EXIT_FAILURE);
@@ -108,6 +110,19 @@ void startServer(char *port) {
     send_req request;
     tftp_state serverState = setup_fsm_server();
     update_fsm_server(&request, &serverState, their_addr, buffer, numbytes);
+    int bytes_sent;
+  if((bytes_sent = sendto(sockfd, "hello1", 7, 0, 
+      (struct sockaddr *) &request.address, sizeof(struct sockaddr))) == -1) {
+    perror("send_packet->sendto");
+    exit(EXIT_FAILURE);
+  }
+
+  if((bytes_sent = sendto(sockfd, "hello2", 7, 0, 
+      (struct sockaddr *) & their_addr, sizeof(struct sockaddr))) == -1) {
+    perror("send_packet->sendto");
+    exit(EXIT_FAILURE);
+  }
+
     serverThread(their_addr, serverState, request);
     busy--;
 

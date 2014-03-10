@@ -1,7 +1,7 @@
 /*
 ** fsm_server.c
 **
-** Authors: Kyle Poore, Robert Correiro
+** Authors: Kyle Poore
 **
 **
 */
@@ -74,11 +74,13 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
         case ERROR :
           handle_error(buf);
           break;
+          serverState->state = SHUTDOWN;
         default:
           vprintf(UNEXPECTED);
           // send an error packet
           length = pack_error(request->buf,UNDEFINED,"tftp: unexpected packet\n");
           request->op = ERROR;
+          serverState->state = SHUTDOWN;
       }
       break;
     case SENDING :
@@ -154,6 +156,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
         case ERROR :
           handle_error(buf);
           fclose(serverState->fp);
+          serverState->state = SHUTDOWN;
           break;
         default :
           vprintf(UNEXPECTED);
@@ -170,7 +173,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
       vprintf("reached SHUTDOWN state....\n");      
       break;
     default :
-      
+      serverState->state = SHUTDOWN;
       break;
   }
 
