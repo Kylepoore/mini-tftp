@@ -197,22 +197,18 @@ void startClient(char *port, char *filename, char *host, char clientMode) {
 
   // addr_len = sizeof(struct sockaddr_in);
 
-  // my_addr.sin_family = AF_INET;
-  // my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  // my_addr.sin_port = 0;
+  my_addr.sin_family = AF_INET;
+  my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  my_addr.sin_port = 0;
 
-  // if (bind(sockfd, (struct sockaddr *)&my_addr, addr_len) == -1) {
-  //   close(sockfd);
-  //   perror("bind");
-  //   exit(EXIT_FAILURE);
-  // }
-
-
-  // if (bindconnect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
-  //   close(sockfd);
-  //   perror("connect");
-  //   exit(EXIT_FAILURE);
-  // }
+  if (bind(sockfd, (struct sockaddr *)&my_addr, sizeof(my_addr)) == -1) {
+    close(sockfd);
+    perror("bind");
+    exit(EXIT_FAILURE);
+  }
+  int addrlen= sizeof(my_addr);
+  getsockname(sockfd,(struct sockaddr *) &my_addr, &addrlen);
+  vprintf("port: %d\n",ntohs(my_addr.sin_port));
 
   switch(clientMode) {
     case 'r':
