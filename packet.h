@@ -10,6 +10,8 @@ unsigned int getOpCode(char *buf);
 
 unsigned short getBlockNo(char *buf);
 
+unsigned short getBlockNo(char *buf);
+
 int pack_rrq(char *buf, char *fileName, const char *mode);
 
 int pack_wrq(char *buf, char *fileName, const char *mode);

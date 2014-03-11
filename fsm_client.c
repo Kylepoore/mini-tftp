@@ -17,8 +17,43 @@ int done(unsigned int bytes) {
   return (bytes - 4) < 512;
 }
 
-int error_handler(tftp_state *client) {
+int error_handler(tftp_state *client, char *buffer, int error_code) {
   vprintf("Packet Type: ERROR\n");
+  switch(error_code){
+    case UNDEFINED :
+      vprintf("undefined error occurred: %s\n",buffer);
+      exit(EXIT_FAILURE);
+      break; 
+    case FILE_NOT_FOUND :
+      vprintf("file not found: %s\n",buffer);
+      exit(EXIT_FAILURE);
+      break; 
+    case ACCESS_VIOLATION :
+      vprintf("permision denied: %s\n",buffer);
+      exit(EXIT_FAILURE);
+      break; 
+    case DISK_FULL :
+      vprintf("disk full: %s\n",buffer);
+      exit(EXIT_FAILURE);
+      break; 
+    case ILLEGAL_OP :
+      vprintf("illecal op code: %s\n",buffer);
+      exit(EXIT_FAILURE);
+      break; 
+    case UNKNOWN_TID :
+      vprintf("unknown tid: %s\n",buffer);
+      break; 
+    case FILE_EXISTS :
+      vprintf( "file already exists: %s\n",buffer);
+      exit(EXIT_FAILURE);
+      break; 
+    case NO_SUCH_USER :
+      vprintf("no such user: %s",buffer);
+      exit(EXIT_FAILURE);
+      break;
+    default:
+      vprintf("unknown error: %s",buffer);
+  } 
   client->done = 1;
   return -1;
 }
@@ -121,7 +156,7 @@ int build_req(send_req *request, tftp_state *client,
             break;
 
           case ERROR:
-            return error_handler(client);
+            return error_handler(client,buf,getErrorNo(buf));
 
           default:  
             return 0;  // Ignore packet
@@ -144,7 +179,7 @@ int build_req(send_req *request, tftp_state *client,
           break;
 
         case ERROR:
-          return error_handler(client);
+          return error_handler(client, buf, getErrorNo(buf));
 
         default:  
           return 0;  // Ignore packet
@@ -186,7 +221,7 @@ int build_req(send_req *request, tftp_state *client,
           break;
 
         case ERROR:
-          return error_handler(client);
+          return error_handler(client,buf,getErrorNo(buf));
 
         default:  
           return 0;  // Ignore packet

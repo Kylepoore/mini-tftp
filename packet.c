@@ -19,6 +19,20 @@ unsigned short getBlockNo(char *buf) {
   return ((unsigned short)(unsigned char)buf[2] << 8) + ((unsigned short)(unsigned char)buf[3]);
 }
 
+unsigned short getErrorNo(char *buf) {
+  vprintf("Inside getErrorNo:\n");
+  vprintf("(unsigned char) buf[2] = 0x%x\n", (unsigned)(unsigned char)buf[2] );
+  vprintf("(unsigned char) buf[3] = 0x%x\n", (unsigned)(unsigned char)buf[3] );
+
+  // vprintf("(unsigned) buf[2] = 0x%x\n", (unsigned)buf[2] );
+  // vprintf("(unsigned) buf[3] = 0x%x\n", (unsigned)buf[3] );
+
+  // vprintf("MOST_SIG = %d\n", (unsigned)buf[2] << 8 );
+  // vprintf("LEAST_SIG = %d\n", (unsigned)buf[3] );
+
+  return ((unsigned short)(unsigned char)buf[2] << 8) + ((unsigned short)(unsigned char)buf[3]);
+}
+
 // Could probably collapse pack_rrq and pack_wrq into one
 // just pass in the type (either WRQ or RRQ)
 
@@ -118,7 +132,7 @@ int recvfrom_timeout(int sockfd, void *buf, int len, unsigned int flags, struct 
     vprintf("got a packet!\n");
     return code;
   }else{
-    vprintf("response timed out! (since: %zu, now: %zu)\n",state.wait_time,time(NULL));
+    vprintf("response timed out! (since: %lu, now: %lu)\n",(long)state.wait_time,(long)time(NULL));
     return -1;
   }
   

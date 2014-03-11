@@ -50,6 +50,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
           }else{
             length = pack_error(request->buf,FILE_NOT_FOUND,"error: file not found\n");
             request->op = ERROR;
+            serverState->state = SHUTDOWN;
           }
           break;
         case WRQ :
@@ -59,6 +60,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
             vprintf("error: file already exists");
             length = pack_error(request->buf,FILE_EXISTS,"error: file already exists\n");
             request->op = ERROR;
+            serverState->state = SHUTDOWN;
           }else{
             vprintf("entering RECEIVING state\n");
             serverState->state = RECEIVING;
@@ -73,8 +75,8 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
           break;
         case ERROR :
           handle_error(buf);
-          break;
           serverState->state = SHUTDOWN;
+          break;
         default:
           vprintf(UNEXPECTED);
           // send an error packet
@@ -87,7 +89,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
       switch(opcode){
         case ACK :
           if(getBlockNo(buf) != serverState->block){
-            length = pack_error(request->buf,UNDEFINED,"tftp: wrong block number\n");
+            length = pack_error(request->buf,UNKNOWN_TID,"tftp: wrong block number\n");
             request->op = 0;
           }else{
             vprintf("packet acknowledged\n");
@@ -131,7 +133,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
           vprintf("received data block %d!\n", getBlockNo(buf));
           vprintf("serverState->block + 1 = %d\n", serverState->block);
           if(getBlockNo(buf) != (unsigned short)(serverState->block + 1)){
-            length = pack_error(request->buf,UNDEFINED,"tftp: wrong block number\n");
+            length = pack_error(request->buf,UNKNOWN_TID,"tftp: wrong block number\n");
             request->op = 0;
           }else{
             if(fwrite(buf + 4, sizeof(char), bytes - 4, serverState->fp) < bytes - 4){
@@ -170,7 +172,7 @@ int update_fsm_server(send_req *request, tftp_state *serverState, struct sockadd
       }
       break;
     case SHUTDOWN :
-      vprintf("reached SHUTDOWN state....\n");      
+      vprintf("reached SHUTDOWN state....\n");
       break;
     default :
       serverState->state = SHUTDOWN;
